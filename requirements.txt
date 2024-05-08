@@ -1,0 +1,7 @@
+openpyxl
+redis
+python-jose
+debugpy
+img2pdf
+pypdf
+python-ldap

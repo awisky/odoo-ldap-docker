@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="company_form_view" model="ir.ui.view">
+        <field name="name">Add populate button to ldap view</field>
+        <field name="model">res.company.ldap</field>
+        <field name="inherit_id" ref="auth_ldap.view_ldap_installer_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group" name="populate_ldap" position="after">
+                <group string="Populate user database">
+                    <field name="deactivate_unknown_users"/>
+                    <field invisible="deactivate_unknown_users == False" name="no_deactivate_user_ids" widget="many2many_tags"/>
+                </group>
+                <button colspan="2" name="populate_wizard" string="Populate" type="object"/>
+            </xpath></field>
+    </record>
+</odoo>

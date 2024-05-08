@@ -1,0 +1,14 @@
+dn: uid=agustin,ou=mountrix,dc=mountrix,dc=local
+uid: agustin
+cn: agustin
+sn: 3
+objectClass: top
+objectClass: posixAccount
+objectClass: inetOrgPerson
+loginShell: /bin/bash
+homeDirectory: /home/agustin
+uidNumber: 16859
+gidNumber: 100
+gecos: agustin
+userPassword: {crypt}x
+mail: agustinwisky@gmail.com

@@ -1,0 +1,150 @@
+services:
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass x1wCOdAAcIxObg77
+    volumes: 
+      - redis-data:/data
+  openldap:
+    image: osixia/openldap:latest
+    command: "--loglevel info"
+    container_name: ldapserver
+    hostname: ldapserver
+    ports:
+      - "389:389"
+      - "636:636"
+    volumes:
+      - ./data/slapd/database:/var/lib/ldap
+      - ./data/slapd/config:/etc/ldap/slapd.d
+      - ./data/certificates:/container/service/slapd/assets/certs 
+      - openldap-ldif:/openldap/ldif
+    environment:
+      - LDAP_ORGANISATION=mountrix
+      - LDAP_DOMAIN=mountrix.local
+      - LDAP_ADMIN_USERNAME=admin
+      - LDAP_ADMIN_PASSWORD=passwisky
+      - LDAP_CONFIG_PASSWORD=passwisky
+      - "LDAP_BASE_DN=dc=mountrix,dc=local"
+      - LDAP_TLS_CRT_FILENAME=server.crt
+      - LDAP_TLS_KEY_FILENAME=server.key
+      - LDAP_TLS_CA_CRT_FILENAME=ldapcacert.crt
+      - LDAP_TLS_VERIFY_CLIENT=try  
+      - LDAP_READONLY_USER=true
+      - LDAP_READONLY_USER_USERNAME=user-wisky
+      - LDAP_READONLY_USER_PASSWORD=passwisky
+      - LDAP_SEED_INTERNAL_LDIF_PATH=/openldap/ldif
+  web:
+    build:
+      context: .
+    environment:
+      - DB_PORT_5432_TCP_ADDR=db
+      - DB_PORT_5432_TCP_PORT=5432
+      - DB_ENV_POSTGRES_USER=odoo
+      - DB_ENV_POSTGRES_PASSWORD=odoo
+      - PGHOST=db-odoo
+      - PGPORT=5432
+      - PGUSER=odoo
+      - PGPASSWORD=odoo
+      - PGDATABASE=odoo-17
+      - ODOO_USER_ADMIN_DEFAULT_PASSWORD=admin
+      - ODOO_DBMASTER_PASSWORD=admin123
+      - ODOO_CONF_WORKERS=0
+      - ODOO_DBNAME=odoo-17
+      - SHELL=/bin/bash
+      - LOG_LEVEL=debug
+      - ODOO_COMMUNITY_COLOR=009fe3
+      - ODOO_ENTERPRISE_COLOR=009fe3
+      - JUPYTER_TOKEN=LaUSSxqtppGqhk5R
+      - ODOO_CONF_PROXY_MODE=True
+      - ODOO_SESSION_REDIS=true
+      - ODOO_SESSION_REDIS_HOST=redis
+      - ODOO_SESSION_REDIS_PASSWORD=x1wCOdAAcIxObg77
+      - ODOO_SESSION_REDIS_PORT=6379
+      - DEBUG=true # to debug with VS Code in your local
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8069:8069"
+      - "8888:8888"
+      - "8889:3001"
+    tty: true
+    volumes:
+      - odoo-web-data:/var/lib/odoo
+      - ./ldap:/ldap
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_USER=odoo
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data/pgdata
+  nginx:
+    image: nginx:latest
+    depends_on:
+      - web
+    command: >
+      /bin/bash -c "echo $$'
+      upstream odoo {
+        server web:8069;
+      }
+      upstream odoo-chat {
+        server web:8072;
+      }
+      upstream jupyterlab {
+        server web:8888;
+      }
+      server {
+        listen 80;
+        client_max_body_size 0;
+
+        access_log /var/log/nginx/odoo-access.log;
+        error_log /var/log/nginx/odoo-error.log;
+
+        proxy_set_header Host $$host:$$server_port;
+        proxy_set_header X-Real-IP $$remote_addr;
+        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $$scheme;
+        proxy_set_header X-Forwarded-Host $$host:$$server_port;
+        proxy_set_header X-Forwarded-Server $$host;
+
+        location / {
+          proxy_redirect off;
+          proxy_pass http://odoo;
+        }
+
+        location /longpolling {
+          proxy_pass http://odoo-chat;
+        }
+
+        location ~* /web/static/ {
+          proxy_cache_valid 200 90m;
+          proxy_buffering on;
+          expires 864000;
+          proxy_pass http://odoo;
+        }
+
+        location /back/ {
+          proxy_pass http://jupyterlab/back/;
+          proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+          proxy_set_header X-Real-IP $$remote_addr;
+          proxy_set_header Host $$http_host;
+          proxy_http_version 1.1;
+          proxy_redirect off;
+          proxy_buffering off;
+
+          proxy_read_timeout 86400;
+        }
+      }' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    ports:
+      - "80:80"
+    restart: always
+volumes:
+  openldap-ldif:
+  redis-data:
+  odoo-web-data:
+  odoo-db-data:

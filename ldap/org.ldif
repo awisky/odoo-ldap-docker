@@ -1,0 +1,3 @@
+dn: ou=mountrix,dc=mountrix,dc=local
+objectClass: organizationalUnit
+ou: mountrix

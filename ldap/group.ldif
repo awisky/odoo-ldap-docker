@@ -1,0 +1,7 @@
+# Odoo Internal User
+dn: cn=Odoo Internal User,ou=groups,ou=mountrix,dc=mountrix,dc=local
+objectClass: top
+objectClass: groupOfNames
+cn: Odoo Internal User
+description: Group for Odoo Internal User
+member: cn=admin,ou=users,dc=mountrix,dc=local

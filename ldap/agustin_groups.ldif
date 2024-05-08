@@ -1,0 +1,5 @@
+# Add Agustin to Odoo Internal User
+dn: cn=Odoo Internal User,ou=groups,ou=mountrix,dc=mountrix,dc=local
+changetype: modify
+add: member
+member: uid=agustin,ou=users,ou=mountrix,dc=mountrix,dc=local

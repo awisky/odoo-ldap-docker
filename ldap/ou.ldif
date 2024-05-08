@@ -1,0 +1,5 @@
+dn: ou=groups,ou=mountrix,dc=mountrix,dc=local
+objectClass: top
+objectClass: organizationalUnit
+ou: groups
+description: Container for all group entries under mountrix
